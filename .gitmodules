@@ -1,3 +1,4 @@
 [submodule "partition/cut-pursuit"]
 	path = partition/cut-pursuit
 	url = ../cut-pursuit.git
+	branch = docker-ready
