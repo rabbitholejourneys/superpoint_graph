@@ -13,16 +13,16 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -fopenmp -O3")
 ##############################
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_MODULE_PATH})
 
-find_package(PythonLibs)
+find_package(PythonLibs 3.9)
 find_package(PythonInterp)
-find_package(NumPy 1.5 REQUIRED)
+find_package(NumPy 1.24 REQUIRED)
 
-find_package(Boost 1.65.0 COMPONENTS graph REQUIRED) #system filesystem thread serialization
+find_package(Boost 1.74.0 COMPONENTS graph REQUIRED numpy3 COMPONENTS python3 REQUIRED) #system filesystem thread serialization
 if (${Boost_MINOR_VERSION} LESS 67 )
     find_package(Boost 1.65.0 COMPONENTS numpy${PYTHON_VERSION_MAJOR} REQUIRED) #system filesystem thread serialization
 else()
     set(PYTHONVERSION ${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
-    find_package(Boost 1.67.0 COMPONENTS numpy${PYTHONVERSION} REQUIRED)
+    #find_package(Boost 1.74.0 COMPONENTS numpy${PYTHONVERSION} REQUIRED)
 endif()
 
 include_directories(${Boost_INCLUDE_DIRS})
