@@ -412,7 +412,7 @@ def read_las(filename):
 import pypcd
 from pypcd import pypcd
 def read_pcd(filename):
-   """convert from a pcd file with no rgb"""
+    """convert from a pcd file with no rgb"""
     #---read the pcd file--------
     pcddata = pypcd.PointCloud.from_path(filename)
     xyz = np.mat(np.stack([pcddata.pc_data[n] for n in ['x', 'y', 'z']]))
