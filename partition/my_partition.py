@@ -153,52 +153,93 @@ def partition_file(file_path, feature_list, args):
         print(xyz.min(0))
         xyz =  (xyz - xyz.min(0)).astype('float32').copy()
         #xyz = (xyz/xyz.max())
-       
-        #print("-- prune")
-        #xyz = libply_c.prune(xyz, args.voxel_width, np.zeros(xyz.shape,dtype='u1'), np.array(1,dtype='u1'), np.array(1,dtype='u1'), 0,0)[0].copy()
-        #---compute 10 nn graph-------
-        print("-- compute nearest neighour graph")
-        graph_nn, target_fea = compute_graph_nn_2(xyz, args.k_nn_adj, args.k_nn_geof)
-        #geof = libply_c.compute_geof(xyz, target_fea.copy(), args.k_nn_geof).astype('float32')
-        #graph_nn, target_fea = compute_graph_nn_2(xyz, args.k_nn_adj, args.k_nn_geof)
-        
-        #---compute geometric features-------
-        print("-- compute geofs")
-        geof = np.vstack([las[f] for f in feature_list]).transpose().astype('float32')
-        #geof = libply_c.compute_geof(xyz, target_fea, args.k_nn_geof).astype('float32') #np.vstack([las[f] for f in feature_list]).transpose().astype('float32') #
-        print("nans",len(geof[np.isnan(geof)].flatten()))
-        geof[np.isnan(geof)]=1.
-        #geof = normalize(geof)
-        #scaler = StandardScaler()
-        #scaler = RobustScaler()
-        #scaler = QuantileTransformer()
-        #geof = scaler.fit_transform(geof)
-        geof[:,2] = 2. * geof[:, 2]
-        #geof[:,3] = 2. * geof[:, 3]
-        #geof = geof*0.5
-        features = geof.copy() #*1.2 #np.hstack([xyz,geof])/6.    
-        graph_nn["edge_weight"] = np.array(1. / ( args.lambda_edge_weight + graph_nn["distances"] / np.mean(graph_nn["distances"])), dtype = 'float32')
-        #print("edge_weight", graph_nn["edge_weight"].shape)
-        #print("        minimal partition...")
-        print("-- cut-pursuit")
-        components, in_component = libcp.cutpursuit(features, graph_nn["source"], graph_nn["target"]
-                                        , graph_nn["edge_weight"], args.reg_strength, cutoff=args.cutoff, speed=args.speed)
-        
-        components = np.array(components, dtype = 'object')
-        print(in_component.shape)
-        print(len(np.unique(in_component)))
-        #print(np.unique(in_component, return_counts=True))
-        #import pdb; pdb.set_trace()
-        print(components.shape)
+        voxel_widths = [1.,0.5]
 
-    write_partitions_to_las(file_path, file_path+"-cluster.las", in_component.copy(), geof=geof, xyz=xyz)#np.mod(in_component,10)
-        #print(components.shape)
-        #print("comp", components)
-        #print(np.unique(components), len(np.unique(components)))
-        #print(in_component.shape)
-        #print(np.unique(in_component), len(np.unique(in_component)))
-        #import pdb; pdb.set_trace()
-        #print("nn",np.unique( graph_nn["edge_weight"]))
+        voxel_width = voxel_widths[1]
+
+        # geof = libply_c.compute_geof(xyz_pruned, target_fea.copy(), args.k_nn_geof).astype('float32')
+        # geof[np.isnan(geof)]=1.
+        # geof[:,3] = 2. * geof[:, 3]
+        # features = geof.copy() #*1.2 #np.hstack([xyz,geof])/6.    
+        geof = np.vstack([las[f] for f in feature_list]).transpose().astype('float32').copy()
+        partitions = compute_partitions(args, xyz, voxel_width, geof)
+
+        
+
+
+
+
+        # #print("-- prune")
+        # xyz_1 = libply_c.prune(xyz, args.voxel_width, np.zeros(xyz.shape,dtype='u1'), np.array(1,dtype='u1'), np.array(1,dtype='u1'), 0,0)[0].copy()
+        # #---compute 10 nn graph-------
+        # print("-- compute nearest neighour graph")
+        # graph_nn, target_fea = compute_graph_nn_2(xyz, args.k_nn_adj, args.k_nn_geof)
+        # #geof = libply_c.compute_geof(xyz, target_fea.copy(), args.k_nn_geof).astype('float32')
+        # #graph_nn, target_fea = compute_graph_nn_2(xyz, args.k_nn_adj, args.k_nn_geof)
+        
+        # #---compute geometric features-------
+        # print("-- compute geofs")
+        # geof = np.vstack([las[f] for f in feature_list]).transpose().astype('float32')
+        # #geof = libply_c.compute_geof(xyz, target_fea, args.k_nn_geof).astype('float32') #np.vstack([las[f] for f in feature_list]).transpose().astype('float32') #
+        # print("nans",len(geof[np.isnan(geof)].flatten()))
+        # geof[np.isnan(geof)]=1.
+        # #geof = normalize(geof)
+        # #scaler = StandardScaler()
+        # #scaler = RobustScaler()
+        # #scaler = QuantileTransformer()
+        # #geof = scaler.fit_transform(geof)
+        # geof[:,2] = 2. * geof[:, 2]
+        # #geof[:,3] = 2. * geof[:, 3]
+        # #geof = geof*0.5
+        # features = geof.copy() #*1.2 #np.hstack([xyz,geof])/6.    
+        # graph_nn["edge_weight"] = np.array(1. / ( args.lambda_edge_weight + graph_nn["distances"] / np.mean(graph_nn["distances"])), dtype = 'float32')
+        # #print("edge_weight", graph_nn["edge_weight"].shape)
+        # #print("        minimal partition...")
+        # print("-- cut-pursuit")
+        # components, in_component = libcp.cutpursuit(features, graph_nn["source"], graph_nn["target"]
+        #                                 , graph_nn["edge_weight"], args.reg_strength, cutoff=args.cutoff, speed=args.speed)
+        
+        # components = np.array(components, dtype = 'object')
+        # print(in_component.shape)
+        # print(len(np.unique(in_component)))
+        # #print(np.unique(in_component, return_counts=True))
+        # #import pdb; pdb.set_trace()
+        # print(components.shape)
+
+    write_partitions_to_las(file_path, file_path+"-cluster.las", partitions.copy(), geof=None, xyz=None)#
+
+def compute_partitions(args, xyz, voxel_width, kd_tree=None, features=None):
+    kd_tree = build_kd_tree(xyz, kd_tree)
+    #if features is None:
+    #    _, target_fea = compute_graph_nn_2(xyz, args.k_nn_adj, args.k_nn_geof)
+    #    features = libply_c.compute_geof(xyz, target_fea.copy(), args.k_nn_geof).astype('float32')
+    
+    xyz_pruned = libply_c.prune(xyz, voxel_width, np.zeros(xyz.shape,dtype='u1'), np.array(1,dtype='u1'), np.array(1,dtype='u1'), 0,0)[0].copy()
+     
+    graph_nn, target_fea = compute_graph_nn_2(xyz_pruned, args.k_nn_adj, args.k_nn_geof)
+    print("-- compute geofs")
+    features_pruned = libply_c.compute_geof(xyz_pruned, target_fea.copy(), args.k_nn_geof).astype('float32').copy()
+    graph_nn["edge_weight"] = np.array(1. / ( args.lambda_edge_weight + graph_nn["distances"] / np.mean(graph_nn["distances"])), dtype = 'float32')
+    print("-- cut-pursuit")
+    _, in_component = libcp.cutpursuit(features_pruned, graph_nn["source"], graph_nn["target"]
+                                        , graph_nn["edge_weight"], args.reg_strength, cutoff=args.cutoff, speed=args.speed)
+    
+    #partition_ids = interpolate_partition_ids(xyz, xyz_pruned, in_component, features)
+    partition_ids = interpolate_partition_ids(xyz, xyz_pruned, in_component, features)
+    return partition_ids
+
+def interpolate_partition_ids(xyz, xyz_pruned, partition_ids_pruned,  kd_tree_pruned=None):
+    """compute the knn graph"""
+    kd_tree_pruned = build_kd_tree(xyz_pruned, kd_tree_pruned)
+
+    neighbors = kd_tree_pruned.query(xyz, k=1, return_distance=False)
+    partition_ids = partition_ids_pruned[neighbors.flatten()] 
+    return partition_ids
+
+def build_kd_tree(xyz, kd_tree):
+    if kd_tree is None:
+        kd_tree = KDTree(xyz, leaf_size=30, metric='euclidean')
+    return kd_tree
 
 def normalize(xyz):
     #print(xyz.shape,np.percentile(xyz,2,axis=0).shape)

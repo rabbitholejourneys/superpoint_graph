@@ -3,7 +3,7 @@
 #---------     Loic Landrieu, Dec. 2017     -----------------------------------
 #------------------------------------------------------------------------------
 import numpy as np
-from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import NearestNeighbors, KDTree
 from scipy.spatial import Delaunay
 from numpy import linalg as LA
 import numpy.matlib
@@ -23,7 +23,7 @@ def compute_graph_nn(xyz, k_nn):
     graph["distances"] = distances.flatten().astype('float32')
     return graph
 #------------------------------------------------------------------------------
-def compute_graph_nn_2(xyz, k_nn1, k_nn2, voronoi = 0.0):
+def compute_graph_nn_2(xyz, k_nn1, k_nn2, voronoi = 0.0, kd_tree=None):
     """compute simulteneoulsy 2 knn structures
     only saves target for knn2
     assumption : knn1 <= knn2"""
@@ -31,11 +31,16 @@ def compute_graph_nn_2(xyz, k_nn1, k_nn2, voronoi = 0.0):
     n_ver = xyz.shape[0]
     #compute nearest neighbors
     graph = dict([("is_nn", True)])
-    nn = NearestNeighbors(n_neighbors=k_nn2+1, algorithm='kd_tree').fit(xyz)
-    distances, neighbors = nn.kneighbors(xyz)
-    del nn
-    neighbors = neighbors[:, 1:]
-    distances = distances[:, 1:]
+    if kd_tree is None:
+        nn = NearestNeighbors(n_neighbors=k_nn2+1, algorithm='kd_tree').fit(xyz)
+        distances, neighbors = nn.kneighbors(xyz)
+        del nn
+        neighbors = neighbors[:, 1:]
+        distances = distances[:, 1:]
+    else:        
+        distances, neighbors = kd_tree.query(xyz, k=k_nn2+1, return_distance=True)
+        neighbors = neighbors[:, 1:]
+        distances = distances[:, 1:]
     #---knn2---
     target2 = (neighbors.flatten()).astype('uint32')
     #---knn1-----
